@@ -76,7 +76,15 @@ if (@$_REQUEST['fun_id']) {
 							</div>
 						</div>
 
-						<!-- Button -->
+						<!-- Checkbox para mostrar/ocultar contraseñas -->
+                        <div class="form-group">
+                            <div class="col-md-12">
+                                <input type="checkbox" id="show_password"> Mostrar Contrase&ntilde;a
+                            </div>
+                        </div>
+
+
+							<!-- Button -->
 						<div class="form-group">
 							<label class="col-md-4 control-label label_general" for="btn_cambiar_contrasena"></label>
 							<div class="col-md-12">
@@ -98,6 +106,7 @@ if (@$_REQUEST['fun_id']) {
 
 <script>
 $(document).ready(function() {
+	//Validaciones que serán llamadas por las reglas de validación
     // Método de validación para verificar la longitud mínima de 8 caracteres
     $.validator.addMethod("minLengthCheck", function(value, element) {  
         return this.optional(element) || value.length >= 8;
@@ -111,7 +120,7 @@ $(document).ready(function() {
 
     // Método de validación para verificar un número
     $.validator.addMethod("numberCheck", function(value, element) {
-        const regex = /\d/;
+        const regex = /\d/;   //abarca los numeros del 0-9
         return this.optional(element) || regex.test(value);
     }, "La contraseña debe tener al menos un número");
 
@@ -123,20 +132,20 @@ $(document).ready(function() {
 
     // Definición de las reglas de validación
     $("#form_cambiar_contrasena").validate({
-        rules: {
-            fun_pass: {
+        rules: {            //reglas que se deben cumplir
+            fun_pass: {             //input de nueva contraseña
                 required: true,
-                minLengthCheck: true,
+                minLengthCheck: true,   
                 uppercaseCheck: true,
                 numberCheck: true,
                 specialCharCheck: true
             },
-            fun_pass_repeat: {
+            fun_pass_repeat: {       //input de confirmación de contraseña
                 required: true,
-                equalTo: "#fun_pass"
+                equalTo: "#fun_pass"    //Se hace la comparación
             }
         },
-        messages: {
+        messages: {          //Alertas
             fun_pass: {
                 required: "Por favor ingrese una contraseña",
                 minLengthCheck: "La contraseña debe tener al menos 8 caracteres",
@@ -157,28 +166,35 @@ $(document).ready(function() {
 
     // Manejar el evento de cambio del campo fun_pass
     $('#fun_pass').on('keyup change', function() {
-        // Verificar si el campo fun_pass es válido
+        // Verificar si el campo de nueva contraseña es válido
         if ($("#form_cambiar_contrasena").validate().element("#fun_pass")) {
-            // Habilitar el campo fun_pass_repeat si fun_pass es válido
+            // Habilitar el campo de confirmación de contraseña si el primero es válido
             $('#fun_pass_repeat').prop('disabled', false);
         } else {
-            // Deshabilitar el campo fun_pass_repeat si fun_pass no es válido
+            // Deshabilitar el campo confirmación si el primero no es válido
             $('#fun_pass_repeat').prop('disabled', true);
         }
+    });
+
+	// Mostrar la contraseña
+		$('#show_password').on('change', function () {     //Llama al checkbox
+			//operador ternario para validar varias condiciones 
+			//si se ejecuta el checkbox, muestra tipo texeto, sino tipo contraseña
+		var type = $(this).is(':checked') ? 'text' : 'password';  //se almacena el tipo (texto/contraseña)-se almacena   
+		$('#fun_pass, #fun_pass_repeat').attr('type', type);     //Define el tipo
     });
 
 	
 
 
 
-
-    // Manejar el evento de clic del botón de cambiar contraseña
+    // Manejar el evento cuando se oprime el botón de cambiar contraseña
     $('#btn_cambiar_contrasena').click(function() {
         if ($("#form_cambiar_contrasena").valid()) {
             var pass1 = $('#fun_pass').val();
             var pass2 = $('#fun_pass_repeat').val();
 
-            if (pass1 == pass2) {
+            if (pass1 == pass2) {    //comparación de ambos campos
                 var formData = new FormData(document.getElementById("form_cambiar_contrasena"));
                 $.ajax({
                     type: 'POST',
@@ -189,7 +205,7 @@ $(document).ready(function() {
                     processData: false,
                     data: formData,
                     success: function(datos) {
-                        if (datos.exito) {
+                        if (datos.exito) {    //si son iguales, se actualiza
                             Swal.fire({
                                 title: "Contraseña Actualizada Satisfactoriamente",
                                 toast: true,
@@ -209,7 +225,7 @@ $(document).ready(function() {
                         }
                     }
                 });
-            } else {
+            } else {     //manejo de errores
                 Swal.fire({
                     title: "Las contraseñas ingresadas NO coinciden. Favor verificar",
                     toast: true,
@@ -220,7 +236,6 @@ $(document).ready(function() {
             }
         }
     });
-//Angejartr
 });
 
 //Canti123&
