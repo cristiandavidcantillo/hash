@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambiar Contraseña</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .input-group-text {
+            cursor: pointer;
+        }
+        .valid-icon, .invalid-icon {
+            display: none;
+            position: absolute;
+            right: 10px;
+            top: 35%;
+        }
+        .input-group {
+            position: relative;
+        }
+        .valid-icon.visible {
+            display: inline;
+            color: green;
+        }
+        .invalid-icon.visible {
+            display: inline;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container contenedor_general">
+    <div class="row titulo_general_row">
+        <div class="col-12 titulo_general">
+            <h1>Cambiar Contraseña</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12">
+            <br>
+            <form class="form-horizontal" id="form_cambiar_contrasena">
+                <fieldset>
+                    <div class="form-group">
+                        <label class="col-md-4 control-label label_general" for="fun_pass">Nueva Contraseña*</label>
+                        <div class="col-md-12 input-group">
+                            <input type="password" id="fun_pass" name="fun_pass" class="form-control input-md" required>
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <span id="icon_click1" class="fas fa-eye text-info"></span>
+                                </div>
+                            </div>
+                            <span id="valid_icon1" class="fas fa-check valid-icon"></span>
+                            <span id="invalid_icon1" class="fas fa-times invalid-icon"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-md-4 control-label label_general" for="fun_pass_repeat">Repetir Nueva Contraseña*</label>
+                        <div class="col-md-12 input-group">
+                            <input id="fun_pass_repeat" name="fun_pass_repeat" type="password" class="form-control input-md" required disabled>
+                            <div class="input-group-prepend">
+                                <div class="input-group-text">
+                                    <span id="icon_click2" class="fas fa-eye text-info"></span>
+                                </div>
+                            </div>
+                            <span id="valid_icon2" class="fas fa-check valid-icon"></span>
+                            <span id="invalid_icon2" class="fas fa-times invalid-icon"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="col-md-4 control-label label_general" for="btn_cambiar_contrasena"></label>
+                        <div class="col-md-12">
+                            <button type="button" id="btn_cambiar_contrasena" name="btn_cambiar_contrasena" class="float float-right btn btn-primary">Cambiar Contraseña</button>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="ejecutar_accion" id="ejecutar_accion" value="cambiar_contrasena_funcionario">
+                    <input type="hidden" name="fun_id" id="fun_id" value="<?php echo ($fun_id); ?>">
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function() {
+        // Función debounce para retrasar la validación de contraseña
+        function debounce(func, delay) {
+            let timer;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    func.apply(context, args);
+                }, delay);
+            };
+        }
+
+        // Función para validar la contraseña
+        function validatePassword() {
+            var pass1 = $('#fun_pass').val();
+            var isValid = true;
+            var minLength = 8;
+            var hasUpperCase = /[A-Z]/.test(pass1);
+            var hasNumber = /[0-9]/.test(pass1);
+            var hasSpecialChar = /[!@#$%^&*()]/.test(pass1);
+            var confirmPasswordInput = $('#fun_pass_repeat');
+            var validIcon1 = $('#valid_icon1');
+            var invalidIcon1 = $('#invalid_icon1');
+
+            // Si el campo está vacío, eliminar las alertas activas y deshabilitar el campo de confirmación
+            if (pass1 === '') {
+                Swal.close();
+                confirmPasswordInput.prop('disabled', true);
+                confirmPasswordInput.val('');
+                validIcon1.removeClass('visible');
+                invalidIcon1.removeClass('visible');
+                return;
+            }
+
+            if (!hasUpperCase) {
+                isValid = false;
+            }
+            if (!hasNumber) {
+                isValid = false;
+            }
+            if (!hasSpecialChar) {
+                isValid = false;
+            }
+            if (pass1.length < minLength) {
+                isValid = false;
+            }
+
+            if (isValid) {
+                confirmPasswordInput.prop('disabled', false);
+                Swal.close();
+                validIcon1.addClass('visible');
+                invalidIcon1.removeClass('visible');
+            } else {
+                confirmPasswordInput.prop('disabled', true);
+                confirmPasswordInput.val('');
+                validIcon1.removeClass('visible');
+                invalidIcon1.addClass('visible');
+            }
+        }
+
+        // Aplicar debounce a la función de validación de contraseña
+        $('#fun_pass').keyup(debounce(validatePassword, 500));
+
+        // Mostrar/ocultar contraseña para el primer campo
+        $("#icon_click1").click(function() {
+            $(this).toggleClass("fa-eye fa-eye-slash");
+            var type = $(this).hasClass("fa-eye-slash") ? "text" : "password";
+            $("#fun_pass").attr("type", type);
+        });
+
+        // Mostrar/ocultar contraseña para el segundo campo
+        $("#icon_click2").click(function() {
+            $(this).toggleClass("fa-eye fa-eye-slash");
+            var type = $(this).hasClass("fa-eye-slash") ? "text" : "password";
+            $("#fun_pass_repeat").attr("type", type);
+        });
+
+        // Click del botón para cambiar la contraseña
+        $('#btn_cambiar_contrasena').click(function() {
+            if ($("#form_cambiar_contrasena").valid()) {
+                var pass1 = $('#fun_pass').val();
+                var pass2 = $('#fun_pass_repeat').val();
+
+                if (pass1 == pass2) {
+                    var formData = new FormData(document.getElementById("form_cambiar_contrasena"));
+                    $.ajax({
+                        type: 'POST',
+                        dataType: 'json',
+                        url: "ejecutar_acciones.php",
+                        cache: false,
+                        contentType: false,
+                        processData: false,
+                        data: formData,
+                        success: function(datos) {
+                            if (datos.exito) {
+                                Swal.fire({
+                                    title: "Contraseña Actualizada Satisfactoriamente",
+                                    icon: "success"
+                                }).then(() => {
+                                    <?php if (@$_REQUEST['fun_id']) { ?>
+                                        parent.hs.close();
+                                    <?php } else { ?>
+                                        window.location = '<?php echo ($ruta_raiz); ?>ceg.php';
+                                    <?php } ?>
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: "Las contraseñas ingresadas NO coinciden. Favor verificar",
+                                    icon: "error"
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        title: "Las contraseñas ingresadas NO coinciden. Favor verificar",
+                        icon: "error"
+                    });
+                }
+            }
+        });
+
+        // Detectar Enter para hacer clic en el botón
+        $(document).keypress(function(e) {
+            if (e.which == 13) {
+                $('#btn_cambiar_contrasena').trigger('click');
+            }
+        });
+    });
+</script>
+
+</body>
+</html>

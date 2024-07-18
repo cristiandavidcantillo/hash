@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambiar Contraseña</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container contenedor_general">
+        <div class="row titulo_general_row">
+            <div class="col-12 titulo_general"><h1>Cambiar Contraseña</h1></div>     
+        </div>            
+        <div class="row">    
+            <div class="col-12">
+                <br>
+                <form class="form-horizontal" id="form_cambiar_contrasena">
+                    <fieldset>
+                        <!-- Password input-->
+                        <div class="form-group">
+                            <label class="col-md-4 control-label label_general" for="fun_pass">Nueva Contraseña*</label>
+                            <div class="col-md-12">
+                                <input id="fun_pass" name="fun_pass" type="password" class="form-control input-md" required>
+                            </div>
+                        </div>
+                                                
+                        <!-- Password input 2-->
+                        <div class="form-group">
+                            <label class="col-md-4 control-label label_general" for="fun_pass_repeat">Repetir Nueva Contraseña*</label>
+                            <div class="col-md-12">
+                                <input id="fun_pass_repeat" name="fun_pass_repeat" type="password" class="form-control input-md" required disabled>
+                            </div>
+                        </div>
+
+                        <!-- Show Password Checkbox -->
+                        <div class="form-group">
+                            <div class="col-md-12">
+                                <input type="checkbox" id="showPasswordCheckbox"> Mostrar Contraseña
+                            </div>
+                        </div>
+                                                
+                        <!-- Button -->
+                        <div class="form-group">
+                            <label class="col-md-4 control-label label_general" for="btn_cambiar_contrasena"></label>
+                            <div class="col-md-12">
+                                <button type="button" id="btn_cambiar_contrasena" name="btn_cambiar_contrasena" class="float float-right btn btn-primary">Cambiar Contraseña</button>
+                            </div>
+                        </div>
+
+                        <input type="hidden" name="ejecutar_accion" id="ejecutar_accion" value="cambiar_contrasena_funcionario"> 
+                        <input type="hidden" name="fun_id" id="fun_id" value="<?php echo($fun_id); ?>">   
+                    </fieldset>                                                       
+                </form>
+            </div>                
+        </div>
+    </div>
+    <script>
+        function notificacion(mensaje, tipo = 'success', tiempo = 5000, posicion = 'top-center') {
+            Swal.fire({
+                position: 'top',
+                icon: tipo,
+                title: mensaje,
+                showConfirmButton: false,
+                timer: tiempo,
+                toast: true
+            });
+        }
+
+        function debounce(func, delay) {
+            let timer;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timer);
+                timer = setTimeout(() => {
+                    func.apply(context, args);
+                }, delay);
+            };
+        }
+
+        function validatePassword() {
+            var pass1 = $('#fun_pass').val();
+            var isValid = true;
+            var minLength = 8;
+            var hasUpperCase = /[A-Z]/.test(pass1);
+            var hasNumber = /[0-9]/.test(pass1);
+            var hasSpecialChar = /[!@#$%^&*()]/.test(pass1);
+            var confirmPasswordInput = $('#fun_pass_repeat');
+            
+            // Si el campo está vacío, eliminar las alertas activas y deshabilitar el campo de confirmación
+            if (pass1 === '') {
+                Swal.close();
+                confirmPasswordInput.prop('disabled', true);
+                confirmPasswordInput.val(''); // Resetear el campo de confirmación
+                return;
+            }
+            
+            if (pass1.length < minLength) {
+                notificacion('La contraseña debe tener al menos 8 caracteres.', 'error');
+                isValid = false;
+            }
+            if (!hasUpperCase) {
+                notificacion('La contraseña debe incluir al menos una letra mayúscula.', 'error');
+                isValid = false;
+            }
+            if (!hasNumber) {
+                notificacion('La contraseña debe incluir al menos un número.', 'error');
+                isValid = false;
+            }
+            if (!hasSpecialChar) {
+                notificacion('La contraseña debe incluir al menos un carácter especial.', 'error');
+                isValid = false;
+            }
+            
+            if (isValid) {
+                confirmPasswordInput.prop('disabled', false);
+            } else {
+                confirmPasswordInput.prop('disabled', true);
+                confirmPasswordInput.val(''); // Resetear el campo de confirmación
+            }
+        }
+
+        function mostrarContrasena() {
+            var passInput = $('#fun_pass');
+            var passRepeatInput = $('#fun_pass_repeat');
+            if (passInput.attr('type') === 'password') {
+                passInput.attr('type', 'text');
+                passRepeatInput.attr('type', 'text');
+            } else {
+                passInput.attr('type', 'password');
+                passRepeatInput.attr('type', 'password');
+            }
+        }
+
+        $(document).ready(function() {
+            // Aplicar debounce a la función de validación de contraseña
+            $('#fun_pass').focusout(debounce(validatePassword, 500));
+
+            // Mostrar/Ocultar contraseña al hacer clic en el checkbox
+            $('#showPasswordCheckbox').click(mostrarContrasena);
+
+            // Click del botón para cambiar la contraseña
+            $('#btn_cambiar_contrasena').click(function() {
+                if($("#form_cambiar_contrasena").valid()) {
+                    var pass1 = $('#fun_pass').val();
+                    var pass2 = $('#fun_pass_repeat').val();
+                    
+                    if (pass1 == pass2) {
+                        var formData = new FormData(document.getElementById("form_cambiar_contrasena"));
+                        $.ajax({
+                            type: 'POST',
+                            dataType: 'json',
+                            url: "ejecutar_acciones.php",
+                            cache: false,
+                            contentType: false,
+                            processData: false,
+                            data: formData,
+                            success: function(datos) {
+                                if(datos.exito) {
+                                    notificacion('Contraseña Actualizada Satisfactoriamente', 'success');
+                                    setTimeout(function() {
+                                        <?php if(@$_REQUEST['fun_id']){ ?>
+                                            parent.hs.close();
+                                        <?php } else { ?>
+                                            window.location='<?php echo($ruta_raiz); ?>ceg.php';
+                                        <?php } ?>
+                                    }, 1000); 
+                                } else {
+                                    notificacion('Las contraseñas ingresadas NO coinciden. Favor verificar!', 'error');
+                                }
+                            }
+                        });
+                    } else {
+                        notificacion('Las contraseñas ingresadas NO coinciden. Favor verificar!', 'error');
+                    }
+                }
+            });
+
+            // Detectar Enter para hacer clic en el botón
+            $(document).keypress(function(e) {
+                if(e.which == 13) {
+                    $('#btn_cambiar_contrasena').trigger('click');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

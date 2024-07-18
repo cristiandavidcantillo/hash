@@ -1,0 +1,75 @@
+<div class="container contenedor_general">
+		<div class="row titulo_general_row">
+			<div class="col-12 titulo_general">
+				<h1>Cambiar Contrase&ntilde;a</h1>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-12">
+				<br>
+
+
+			<!-- id causando posible error de validacion en input(validate)-->
+				<form class="form-horizontal" id="form_cambiar_contrasena"> 
+
+					<fieldset>
+						<!-- Password input-->
+						<div class="form-group">
+							<label class="col-md-4 control-label label_general" for="fun_pass">Nueva Contrase&ntilde;a*</label>
+							<div class="col-md-12">
+								<input type="password" id="fun_pass" name="fun_pass" class="form-control input-md" required>
+							</div>
+						</div>
+
+						<!-- Password input 2-->
+						<div class="form-group">
+							<label class="col-md-4 control-label label_general" for="fun_pass_repeat">Repetir Nueva Contrase&ntilde;a*</label>
+							<div class="col-md-12">
+								<input id="fun_pass_repeat" name="fun_pass_repeat" type="password" class="form-control input-md" required disabled>
+							</div>
+						</div>
+
+						<!-- Button -->
+						<div class="form-group">
+							<label class="col-md-4 control-label label_general" for="btn_cambiar_contrasena"></label>
+							<div class="col-md-12">
+								<button type="button" id="btn_cambiar_contrasena" name="btn_cambiar_contrasena" class="float float-right btn btn-primary">Cambiar Contrase&ntilde;a</button>
+							</div> 
+						</div>
+
+						<input type="hidden" name="ejecutar_accion" id="ejecutar_accion" value="cambiar_contrasena_funcionario">
+						<input type="hidden" name="fun_id" id="fun_id" value="<?php echo ($fun_id); ?>">
+					</fieldset>
+				</form>
+			</div>
+		</div>
+	</div>
+</body>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
