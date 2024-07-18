@@ -1,0 +1,200 @@
+<?php
+$max_salida = 10; // Previene algun posible ciclo infinito limitando a 10 los ../
+$ruta_raiz = $ruta = "";
+while ($max_salida > 0) {
+	if (@is_file($ruta . "define.php")) {
+		$ruta_raiz = $ruta; //Preserva la ruta superior encontrada
+		break;
+	}
+	$ruta .= "../";
+	$max_salida--;
+}
+
+include_once($ruta_raiz . 'define.php');
+include_once($ruta_raiz . 'clases.php');
+include_once($ruta_raiz . 'funciones_generales.php');
+
+$acceso = new Acceso();
+
+if (@$_REQUEST['fun_id']) {
+	$fun_id = @$_REQUEST['fun_id'];
+} else {
+	$session = new Session();
+	$usuario_actual = $session->get('user');
+	$fun_id = @$usuario_actual['id'];
+}
+?>
+<html>
+
+<head>
+	<title>Cambiar Contrase&ntilde;a</title>
+
+	<?php
+	$lib = new Libreria();
+	$cadena_librerias = '';
+	$cadena_librerias .= $lib->jquery();
+	$cadena_librerias .= $lib->bootstrap();
+	$cadena_librerias .= $lib->general();
+	$cadena_librerias .= $lib->responsive();
+	$cadena_librerias .= $lib->sweetalert2();
+	echo ($cadena_librerias);
+	?>
+</head>
+
+<body>
+
+	
+<div class="container contenedor_general">
+		<div class="row titulo_general_row">
+			<div class="col-12 titulo_general">
+				<h1>Cambiar Contrase&ntilde;a</h1>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-12">
+				<br>
+
+
+			<!-- id causando posible error de validacion en input(validate)-->
+				<form class="form-horizontal" id="form_cambiar_contrasena"> 
+
+					<fieldset>
+						<!-- Password input-->
+						<div class="form-group">
+							<label class="col-md-4 control-label label_general" for="fun_pass">Nueva Contrase&ntilde;a*</label>
+							
+							<div class="col-md-12">
+								<input type="password" id="fun_pass" name="fun_pass" class="form-control input-md" required>
+							</div>
+						</div>
+
+						<!-- Password input 2-->
+						<div class="form-group">
+							<label class="col-md-4 control-label label_general" for="fun_pass_repeat">Repetir Nueva Contrase&ntilde;a*</label>
+							<div class="col-md-12">
+								<input id="fun_pass_repeat" name="fun_pass_repeat" type="password" class="form-control input-md" required >
+							</div>
+						</div>
+
+						<!-- Button -->
+						<div class="form-group">
+							<label class="col-md-4 control-label label_general" for="btn_cambiar_contrasena"></label>
+							<div class="col-md-12">
+								<button type="button" id="btn_cambiar_contrasena" name="btn_cambiar_contrasena" class="float float-right btn btn-primary">Cambiar Contrase&ntilde;a</button>
+							</div> 
+						</div>
+						<input type="hidden" name="ejecutar_accion" id="ejecutar_accion" value="cambiar_contrasena_funcionario">
+						<input type="hidden" name="fun_id" id="fun_id" value="<?php echo ($fun_id); ?>">
+					</fieldset>
+				</form>
+			</div>
+		</div>
+	</div>
+</body>
+
+</body>
+
+</html><script>
+$(document).ready(function() {
+    // Método de validación para verificar la longitud mínima de 8 caracteres
+    $.validator.addMethod("minLengthCheck", function(value, element) {
+        return this.optional(element) || value.length >= 8;
+    }, "La contraseña debe tener al menos 8 caracteres");
+
+    // Método de validación para verificar la presencia de al menos una letra mayúscula
+    $.validator.addMethod("uppercaseCheck", function(value, element) {
+        const regex = /[A-Z]/;
+        return this.optional(element) || regex.test(value);
+    }, "La contraseña debe tener al menos una letra mayúscula");
+
+    // Método de validación para verificar la presencia de al menos un número
+    $.validator.addMethod("numberCheck", function(value, element) {
+        const regex = /\d/;
+        return this.optional(element) || regex.test(value);
+    }, "La contraseña debe tener al menos un número");
+
+    // Método de validación para verificar la presencia de al menos un carácter especial
+    $.validator.addMethod("specialCharCheck", function(value, element) {
+        const regex = /[@$#!%*?&]/;
+        return this.optional(element) || regex.test(value);
+    }, "La contraseña debe tener al menos un carácter especial");
+
+    // Definir las reglas de validación
+    $("#form_cambiar_contrasena").validate({
+        rules: {
+            fun_pass: {
+                required: true,
+                minLengthCheck: true,
+                uppercaseCheck: true,
+                numberCheck: true,
+                specialCharCheck: true
+            },
+            fun_pass_repeat: {
+                required: true,
+                equalTo: "#fun_pass"
+            }
+        },
+        messages: {
+            fun_pass: {
+                required: "Por favor ingrese una contraseña",
+                minLengthCheck: "La contraseña debe tener al menos 8 caracteres",
+                uppercaseCheck: "La contraseña debe tener al menos una letra mayúscula",
+                numberCheck: "La contraseña debe tener al menos un número",
+                specialCharCheck: "La contraseña debe tener al menos un carácter especial"
+            },
+            fun_pass_repeat: {
+                required: "Por favor repita la contraseña",
+                equalTo: "Las contraseñas no coinciden"
+            }
+        }
+    });
+
+    // Manejar el evento de clic del botón de cambiar contraseña
+    $('#btn_cambiar_contrasena').click(function() {
+        if ($("#form_cambiar_contrasena").valid()) {
+            var pass1 = $('#fun_pass').val();
+            var pass2 = $('#fun_pass_repeat').val();
+
+            if (pass1 == pass2) {
+                var formData = new FormData(document.getElementById("form_cambiar_contrasena"));
+                $.ajax({
+                    type: 'POST',
+                    dataType: 'json',
+                    url: "ejecutar_acciones.php",
+                    cache: false,
+                    contentType: false,
+                    processData: false,
+                    data: formData,
+                    success: function(datos) {
+                        if (datos.exito) {
+                            Swal.fire({
+                                title: "Contraseña Actualizada Satisfactoriamente",
+                                toast: true,
+                                showConfirmButton: false,
+                                position: "bottom-end",
+                                icon: "success"
+                            });
+
+                            setTimeout(function() {
+                                <?php if (@$_REQUEST['fun_id']) { ?>
+                                    parent.hs.close();
+                                <?php } else { ?>
+                                    window.location = '<?php echo ($ruta_raiz); ?>ceg.php';
+                                <?php } ?>
+                            }, 1000);
+                        }
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: "Las contraseñas ingresadas NO coinciden. Favor verificar",
+                    toast: true,
+                    showConfirmButton: false,
+                    position: "bottom-end",
+                    icon: "error"
+                });
+            }
+        }
+    });
+});
+</script>
