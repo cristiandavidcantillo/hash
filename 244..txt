@@ -1,0 +1,138 @@
+function compare_pass() {
+    $bd = new Bd(); // Crear una instancia de la clase de conexión a la base de datos
+    $bd->conectar(); // Conectar a la base de datos
+
+    // Consulta SQL para contar el número de registros que coinciden con la contraseña y el ID del usuario
+    $sql_busca_fun_passs_actual = "
+        SELECT COUNT(*) as count 
+        FROM ceg_funcionario 
+        WHERE fun_pass = :password 
+        AND fun_id = :id_fun
+    ";
+
+    // Preparar los parámetros para la consulta
+    $params = [
+        ':password' => $_REQUEST['password'],  // Contraseña encriptada proporcionada
+        ':id_fun' => $_REQUEST['id_fun']       // ID del usuario
+    ];
+
+    // Ejecutar la consulta con los parámetros preparados
+    $consulta_busca_fun_passs_actual = $bd->consulta($sql_busca_fun_passs_actual, $params);
+    $bd->desconectar(); // Desconectar de la base de datos
+
+    // Retornar la cantidad de registros encontrados
+    return json_encode(['count' => $consulta_busca_fun_passs_actual[0]['count']]);
+}
+
+
+
+// Manejar el evento cuando se oprime el botón de cambiar contraseña
+$('#btn_cambiar_contrasena').click(async function() {
+    if ($("#form_cambiar_contrasena").valid()) {
+
+        var pass1 = $('#fun_pass').val();
+        var pass2 = $('#fun_pass_repeat').val();  
+
+        if (pass1 == pass2) {    
+            
+            // Validar que la contraseña que digite el usuario se encripte
+            let passValid = false; // Nos dirá si el pass fue utilizado, se actualiza cuando la API responde
+
+            try {
+                // Enviar la nueva contraseña (pass1) para encriptar
+                const responseEncrypt = await axios({
+                    method: 'post',
+                    url: '../../../funciones_generales.php',  // Llama a la función que encripta
+                    params: {
+                        ejecutar_accion_general: 'encript_user_pass',
+                        password: pass1  // se le pasa pass1 como parámetro
+                    }
+                });
+
+                // Obtener la contraseña encriptada de la respuesta
+                const passToVerify = responseEncrypt.data.password;   
+                console.log('Contraseña encriptada:', passToVerify);   
+
+                // Enviar la contraseña encriptada para comparar con las almacenadas en la BD
+                const responseCompare = await axios({
+                    method: 'post',
+                    url: './ejecutar_acciones.php', 
+                    params: {
+                        ejecutar_accion: 'compare_pass',
+                        password: passToVerify,   
+                        id_fun: $('#fun_id').val()
+                    }
+                });
+
+                // Interpretar la respuesta de la comparación
+                const result = responseCompare.data;
+                console.log(result);
+
+                // Si 'count' es 0, la contraseña no existe en la base de datos, es válida
+                passValid = result.count === 0;
+
+                // Comparación de ambos campos
+                if (passValid) {
+                    var formData = new FormData(document.getElementById("form_cambiar_contrasena"));
+                    $.ajax({
+                        type: 'POST',
+                        dataType: 'json',
+                        url: "ejecutar_acciones.php", 
+                        cache: false,
+                        contentType: false,
+                        processData: false,
+                        data: formData,
+                        success: function(datos) {
+                            if (datos.exito) {    // Si son iguales, se actualiza 
+                                Swal.fire({
+                                    title: "Contraseña Actualizada Satisfactoriamente",
+                                    toast: true,
+                                    showConfirmButton: false,
+                                    position: "bottom-end",
+                                    icon: "success"       
+                                });
+                                
+                                setTimeout(function() {
+                                    <?php if (@$_REQUEST['fun_id']) { ?>
+                                        parent.hs.close();
+                                    <?php } else { ?>
+                                        window.location = '<?php echo ($ruta_raiz); ?>ceg.php';
+                                    <?php } ?>
+                                }, 1000);
+                            }
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        title: "La contraseña ya fue utilizada",
+                        toast: true,
+                        showConfirmButton: false,
+                        position: "bottom-end",
+                        icon: "error"
+                    });
+                }
+            } catch (error) {
+                console.log(error);
+                Swal.fire({
+                    title: "Hubo un error al procesar la solicitud",
+                    toast: true,
+                    showConfirmButton: false,
+                    position: "bottom-end",
+                    icon: "error"
+                });
+            }
+
+        } else {  // Manejo de errores
+            Swal.fire({
+                title: "Las contraseñas ingresadas NO coinciden. Favor verificar",
+                toast: true,
+                showConfirmButton: false,
+                position: "bottom-end",
+                icon: "error"
+            });
+        }
+    }
+});
+
+
+
