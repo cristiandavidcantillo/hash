@@ -1,225 +1,292 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cambiar Contraseña</title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        .input-group-text {
-            cursor: pointer;
-        }
-        .valid-icon, .invalid-icon {
-            display: none;
-            position: absolute;
-            right: 10px;
-            top: 35%;
-        }
-        .input-group {
-            position: relative;
-        }
-        .valid-icon.visible {
-            display: inline;
-            color: green;
-        }
-        .invalid-icon.visible {
-            display: inline;
-            color: red;
-        }
-    </style>
-</head>
-<body>
+js
 
-<div class="container contenedor_general">
-    <div class="row titulo_general_row">
-        <div class="col-12 titulo_general">
-            <h1>Cambiar Contraseña</h1>
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-12">
-            <br>
-            <form class="form-horizontal" id="form_cambiar_contrasena">
-                <fieldset>
-                    <div class="form-group">
-                        <label class="col-md-4 control-label label_general" for="fun_pass">Nueva Contraseña*</label>
-                        <div class="col-md-12 input-group">
-                            <input type="password" id="fun_pass" name="fun_pass" class="form-control input-md" required>
-                            <div class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <span id="icon_click1" class="fas fa-eye text-info"></span>
-                                </div>
-                            </div>
-                            <span id="valid_icon1" class="fas fa-check valid-icon"></span>
-                            <span id="invalid_icon1" class="fas fa-times invalid-icon"></span>
-                        </div>
-                    </div>
+/* Declare scoped variables*/
+let copyFromUserSelect = []
+let copyToUserSelect = []
+/* END: Variables */
 
-                    <div class="form-group">
-                        <label class="col-md-4 control-label label_general" for="fun_pass_repeat">Repetir Nueva Contraseña*</label>
-                        <div class="col-md-12 input-group">
-                            <input id="fun_pass_repeat" name="fun_pass_repeat" type="password" class="form-control input-md" required disabled>
-                            <div class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <span id="icon_click2" class="fas fa-eye text-info"></span>
-                                </div>
-                            </div>
-                            <span id="valid_icon2" class="fas fa-check valid-icon"></span>
-                            <span id="invalid_icon2" class="fas fa-times invalid-icon"></span>
-                        </div>
-                    </div>
+/* MODAL FUNCTIONS */
 
-                    <div class="form-group">
-                        <label class="col-md-4 control-label label_general" for="btn_cambiar_contrasena"></label>
-                        <div class="col-md-12">
-                            <button type="button" id="btn_cambiar_contrasena" name="btn_cambiar_contrasena" class="float float-right btn btn-primary">Cambiar Contraseña</button>
-                        </div>
-                    </div>
+const initialConfig = () => {
+    let optionPlataform = 
+        `
+            <option value="0">Seleccione...</option>
+            <option value="1">Dynamics</option>
+            <option value="2">Yéminus</option>
+        `
 
-                    <input type="hidden" name="ejecutar_accion" id="ejecutar_accion" value="cambiar_contrasena_funcionario">
-                    <input type="hidden" name="fun_id" id="fun_id" value="<?php echo ($fun_id); ?>">
-                </fieldset>
-            </form>
-        </div>
-    </div>
-</div>
+    document.querySelector('.selectApp').innerHTML=optionPlataform;
 
-<script>
-    $(document).ready(function() {
-        // Función debounce para retrasar la validación de contraseña
-        function debounce(func, delay) {
-            let timer;
-            return function() {
-                const context = this;
-                const args = arguments;
-                clearTimeout(timer);
-                timer = setTimeout(() => {
-                    func.apply(context, args);
-                }, delay);
-            };
-        }
-
-        // Función para validar la contraseña
-        function validatePassword() {
-            var pass1 = $('#fun_pass').val();
-            var isValid = true;
-            var minLength = 8;
-            var hasUpperCase = /[A-Z]/.test(pass1);
-            var hasNumber = /[0-9]/.test(pass1);
-            var hasSpecialChar = /[!@#$%^&*()]/.test(pass1);
-            var confirmPasswordInput = $('#fun_pass_repeat');
-            var validIcon1 = $('#valid_icon1');
-            var invalidIcon1 = $('#invalid_icon1');
-
-            // Si el campo está vacío, eliminar las alertas activas y deshabilitar el campo de confirmación
-            if (pass1 === '') {
-                Swal.close();
-                confirmPasswordInput.prop('disabled', true);
-                confirmPasswordInput.val('');
-                validIcon1.removeClass('visible');
-                invalidIcon1.removeClass('visible');
-                return;
-            }
-
-            if (!hasUpperCase) {
-                isValid = false;
-            }
-            if (!hasNumber) {
-                isValid = false;
-            }
-            if (!hasSpecialChar) {
-                isValid = false;
-            }
-            if (pass1.length < minLength) {
-                isValid = false;
-            }
-
-            if (isValid) {
-                confirmPasswordInput.prop('disabled', false);
-                Swal.close();
-                validIcon1.addClass('visible');
-                invalidIcon1.removeClass('visible');
-            } else {
-                confirmPasswordInput.prop('disabled', true);
-                confirmPasswordInput.val('');
-                validIcon1.removeClass('visible');
-                invalidIcon1.addClass('visible');
-            }
-        }
-
-        // Aplicar debounce a la función de validación de contraseña
-        $('#fun_pass').keyup(debounce(validatePassword, 500));
-
-        // Mostrar/ocultar contraseña para el primer campo
-        $("#icon_click1").click(function() {
-            $(this).toggleClass("fa-eye fa-eye-slash");
-            var type = $(this).hasClass("fa-eye-slash") ? "text" : "password";
-            $("#fun_pass").attr("type", type);
-        });
-
-        // Mostrar/ocultar contraseña para el segundo campo
-        $("#icon_click2").click(function() {
-            $(this).toggleClass("fa-eye fa-eye-slash");
-            var type = $(this).hasClass("fa-eye-slash") ? "text" : "password";
-            $("#fun_pass_repeat").attr("type", type);
-        });
-
-        // Click del botón para cambiar la contraseña
-        $('#btn_cambiar_contrasena').click(function() {
-            if ($("#form_cambiar_contrasena").valid()) {
-                var pass1 = $('#fun_pass').val();
-                var pass2 = $('#fun_pass_repeat').val();
-
-                if (pass1 == pass2) {
-                    var formData = new FormData(document.getElementById("form_cambiar_contrasena"));
-                    $.ajax({
-                        type: 'POST',
-                        dataType: 'json',
-                        url: "ejecutar_acciones.php",
-                        cache: false,
-                        contentType: false,
-                        processData: false,
-                        data: formData,
-                        success: function(datos) {
-                            if (datos.exito) {
-                                Swal.fire({
-                                    title: "Contraseña Actualizada Satisfactoriamente",
-                                    icon: "success"
-                                }).then(() => {
-                                    <?php if (@$_REQUEST['fun_id']) { ?>
-                                        parent.hs.close();
-                                    <?php } else { ?>
-                                        window.location = '<?php echo ($ruta_raiz); ?>ceg.php';
-                                    <?php } ?>
-                                });
-                            } else {
-                                Swal.fire({
-                                    title: "Las contraseñas ingresadas NO coinciden. Favor verificar",
-                                    icon: "error"
-                                });
-                            }
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        title: "Las contraseñas ingresadas NO coinciden. Favor verificar",
-                        icon: "error"
-                    });
-                }
-            }
-        });
-
-        // Detectar Enter para hacer clic en el botón
-        $(document).keypress(function(e) {
-            if (e.which == 13) {
-                $('#btn_cambiar_contrasena').trigger('click');
-            }
-        });
+    tail.select(".selectApp", { 
+        animate: true,  
+        placeholder: "Seleccione...",
+        search: false,
+        width: "100%",
+        deselect: false
     });
-</script>
+}
 
-</body>
-</html>
+function imgError(image , event) {
+    event.preventDefault();
+    image.onerror = null; // Evita que se produzca un bucle infinito
+    image.src = "../../../almacenamiento/foto-usuario/0.png"; // Ruta de una imagen por defecto
+    return true;
+}
+
+const getUser = async (filter,label) => {
+    let filterInfo = filter.target.value.toLowerCase()
+
+    let appSelected = document.querySelector('.selectApp').value
+    let labelFilter = label ? '#copyFromFound' : '#copyToFound'
+
+    if(appSelected && filterInfo.length > 3){
+        if(appSelected == 1){
+            //console.log("Dynamics-> ",filterInfo);
+            top.document.getElementById('mainLoader').classList.remove('hidden');
+
+            await fetch('CopyPermissions.php',{
+                method:'post',
+                body:JSON.stringify({
+                    class:'CopyPermissions',
+                    method:'listUserDynamics',
+                    param:{
+                        filter:filterInfo
+                    }
+                })
+            })
+            .then(res=>res.json())
+            .then(res=>{
+                let listUsersFound = ``
+
+                if(res.success){
+                    ///PINTAR
+                    for (let index = 0; index < res.data.cantidad_registros; index++) {
+                        listUsersFound+=
+                        `
+                        <li class="flex py-2 hover:bg-gray-50 items-center cursor-pointer" onClick="userSelectedFilter(this,${label})"  data-id="${res.data[index].fun_id}" data-name="${res.data[index].fun_usuario}">
+                            <img class="h-8 w-8 rounded-full" onerror="imgError(this, event)" src="../../../almacenamiento/foto-usuario/${res.data[index].fun_identificacion}.jpg" alt="">
+                            <div class="ml-3">
+                                <p class="text-xs font-medium text-gray-900">${res.data[index].fun_nombre_completo} (<u><i> ${res.data[index].fun_usuario} </i></u>)</p>
+                                <p class="text-xs font-light text-blue-600">${res.data[index].car_tag}</p>
+                            </div>
+                        </li>                            
+                        `                          
+                    }
+
+                    document.querySelector(labelFilter).innerHTML = listUsersFound
+
+                }
+            })
+            .catch(error=>{
+                Swal.fire(
+                    'Atención',
+                    'Se presentó un error, intente más tarde',
+                    'error'
+                )
+                console.error(error)
+            })
+            .finally(()=>{
+                top.document.getElementById('mainLoader').classList.add('hidden');
+            })
+
+        }
+        else if(appSelected == 2){
+            //console.log("Yéminus-> ",filterInfo);
+            /* 
+            ? BACKEND CONSULTA YEMINUS
+            */
+
+            top.document.getElementById('mainLoader').classList.remove('hidden');
+
+            await fetch('CopyPermissions.php',{
+                method:'post',
+                body:JSON.stringify({
+                    class:'CopyPermissions',
+                    method:'listUserYeminus',
+                    param:{
+                        filter:filterInfo
+                    }
+                })
+            })
+            .then(res=>res.json())
+            .then(res=>{
+                let listUsersFound = ``
+
+                if(res.success){
+                    ///PINTAR
+                    for (let index = 0; index < res.data.cantidad_registros; index++) {
+                        listUsersFound+=
+                        `
+                        <li class="flex py-2 hover:bg-gray-50 items-center cursor-pointer" onClick="userSelectedFilter(this,${label})"  data-id="${res.data[index].USU_IDENTIFICACION}" data-name="${res.data[index].USU_IDENTIFICACION}">
+                            <img class="h-8 w-8 rounded-full" onerror="imgError(this, event)" src="../../../almacenamiento/foto-usuario/${res.data[index].NUM_IDENTIFICACION}.jpg" alt="">
+                            <div class="ml-3">
+                                <p class="text-xs font-medium text-gray-900">${res.data[index].USU_NOMBRE_USUARIO} (<u><i> ${res.data[index].USU_IDENTIFICACION} </i></u>)</p>
+                                
+                            </div>
+                        </li>                            
+                        `                          
+                    }
+
+                    document.querySelector(labelFilter).innerHTML = listUsersFound
+
+                }
+            })
+            .catch(error=>{
+                Swal.fire(
+                    'Atención',
+                    'Se presentó un error, intente más tarde',
+                    'error'
+                )
+                console.error(error)
+            })
+            .finally(()=>{
+                top.document.getElementById('mainLoader').classList.add('hidden');
+            })
+        }
+    }else{
+        /* Reset filter data */
+        document.querySelector(labelFilter).innerHTML = ''
+    }    
+}
+
+const userSelectedFilter =(e, label)=>{
+    if(e.dataset.id && e.dataset.name){
+      let idExist = label ? copyFromUserSelect.find(x=>x.id==e.dataset.id) : copyToUserSelect.find(x=>x.id==e.dataset.id);
+      
+      if(idExist == undefined){
+        label ? copyFromUserSelect.push({name:e.dataset.name, id:e.dataset.id}) : copyToUserSelect.push({name:e.dataset.name, id:e.dataset.id});
+
+        document.querySelector(label ? '#copyFromFound' : '#copyToFound').innerHTML='';
+        document.querySelector(label ? '#copyFromFilter' : '#copyToFilter').value='';
+        manageListUserSelected(label)
+      }else{
+        Swal.fire(
+          'Atención',
+          'Ya se agregó el cliente a la lista',
+          'warning'
+        )
+      }
+    }
+}
+
+const manageListUserSelected =(label,enabled)=>{
+    let listUserSelected = ''
+    let dataFilter = label ? copyFromUserSelect : copyToUserSelect
+
+    enabled ? '' : (document.querySelector(label ? '#copyFromFilter' : '#copyToFilter').disabled = true)
+
+    enabled ? '' : document.querySelector('.tail-select').classList.add('disabled-select')
+
+    dataFilter.map(user=>{
+      listUserSelected+=`
+      <li class="flex py-2 hover:bg-gray-50 items-center ">
+        <img class="h-8 w-8 rounded-full" src="../../../almacenamiento/foto-usuario/0.png" alt="">
+        <div class="ml-3">
+          <p class="text-xs font-medium text-gray-900">${user.name}  <i class="fas fa-times text-red-700 cursor-pointer" onClick="deleteItemtoList('${user.id}',${label})"></i></p>
+         
+        </div>
+      </li>`;
+    })
+    document.querySelector(label ? '#copyFromSelected' : '#copyToSelected').innerHTML = listUserSelected
+}
+
+const deleteItemtoList =(id, label)=>{
+    document.querySelector(label ? '#copyFromFilter' : '#copyToFilter').disabled = false
+    document.querySelector('.tail-select').classList.remove('disabled-select')
+
+    if(label){
+        copyFromUserSelect =[...copyFromUserSelect.filter(user=>user.id != id)]
+        manageListUserSelected(label,1)
+    }else{
+        copyToUserSelect =[...copyToUserSelect.filter(user=>user.id != id)]
+        manageListUserSelected(label,1)
+    }
+    
+}
+
+const clearData = () => {
+    tail.select(document.querySelector('.selectApp')).remove()
+    initialConfig()
+    copyFromUserSelect.length = 0
+    copyToUserSelect.length = 0
+
+    document.querySelector('#copyFromFilter').disabled = false
+    document.querySelector('#copyToFilter').disabled = false
+    document.querySelector('#copyToSelected').innerHTML = ''
+    document.querySelector('#copyFromSelected').innerHTML = ''
+}
+
+/*  */
+
+document.getElementById('copyFromFilter').addEventListener('keyup',(e)=>getUser(e,1))
+document.getElementById('copyToFilter').addEventListener('keyup',(e)=>getUser(e,0))
+
+document.querySelector('#copyConfirm').addEventListener('click', () => {
+    let copyFrom = copyFromUserSelect.length ? copyFromUserSelect[0].id : ''
+    let copyTo = copyToUserSelect.length ? copyToUserSelect[0].id : ''
+
+    let appSelected = document.querySelector('.selectApp')?.querySelector('option[selected]')
+    let method = appSelected.value == 1 ? 'copyUserDynamics' : (appSelected.value == 2 ? 'copyUserYeminus' : '') 
+    let textAux = ''
+    appSelected.value == 2 ? textAux = `<br><u class="text-theme-1 text-xs italic">(Se copiarán solo las bodegas y permisos sobre documentos)</u>` : textAux = ''
+    if( copyFrom && copyTo && method){
+        Swal.fire({
+            title: 'Confirmar Copiado de Permisos '+appSelected.textContent,
+            html: "Esta seguro de copiar los permisos <br>del usuario <i class='font-bold'>"+copyFromUserSelect[0].name+"</i> al usuario <i class='font-bold'>"+copyToUserSelect[0].name+"</i>? <br><br><hr><i class='text-red-500 text-xs'>Los permisos que tenga el usuario <u class='font-bold'>"+copyToUserSelect[0].name+"</u> serán eliminados y no podrán recuperarse.</i>"+textAux,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Confirmar <i class="fas fa-check"></i>',
+            cancelButtonText: 'Cancelar <i class="fas fa-times-circle"></i>'
+        }).then(async (result) => {
+            if(result.isConfirmed){
+              top.document.getElementById('mainLoader').classList.remove('hidden');
+                
+              await fetch('CopyPermissions.php',{
+                method:'post',
+                body:JSON.stringify({
+                  class:'CopyPermissions',
+                  method: method,
+                  param:{
+                    copyFrom: copyFrom,
+                    copyTo: copyTo
+                  }
+                })
+              })
+              .then(res=>res.json())
+              .then(res=>{
+                if(res.success){
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Permisos Copiados Satisfactoriamente!',
+                    showConfirmButton: false,
+                    timer: 1000
+                  })           
+                }
+              })
+              .catch(error=>{
+                Swal.fire(
+                  'Atención',
+                  'Se presentó un error al intentar copiar los permisos, intente más tarde',
+                  'error'
+                )
+                console.error(error)
+              })
+              .finally(()=>{
+                top.document.getElementById('mainLoader').classList.add('hidden');
+                clearData()
+              })
+      
+            }
+        })
+    }
+})
+
+/* Config DOM Init */
+document.addEventListener("DOMContentLoaded", function(event) {
+  feather.replace()
+
+  initialConfig()
+})
+/* END: DOM Configuration */

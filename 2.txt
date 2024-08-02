@@ -1,0 +1,257 @@
+backend php
+
+<?php
+$max_salida = 10; // Previene algun posible ciclo infinito limitando a 10 los ../
+$ruta_raiz = $ruta = "";
+while ($max_salida > 0) {
+  if (@is_file($ruta . "define.php")) {
+    $ruta_raiz = $ruta; //Preserva la ruta superior encontrada
+    break;
+  }
+  $ruta .= "../";
+  $max_salida--;
+}
+
+include_once($ruta_raiz . 'define.php');
+include_once($ruta_raiz . 'clases.php');
+include_once($ruta_raiz . 'funciones_generales.php');
+
+
+$body = file_get_contents('php://input');
+
+if (!empty($body)) {
+  $data = json_decode($body, true);
+  $nomClase = new $data['class']();
+
+  $dato = call_user_func(array($nomClase, $data['method']), @$data['param']);
+  echo json_encode($dato);
+}
+
+class CopyPermissions{
+    // Conection for DataBase -> Private functions 
+    public $dbD, $dbY, $dbYA;
+
+    function __construct(){
+      $this->currentDate = fecha_db_insertar(date('Y-m-d H:i:s'), 'Y-m-d H:i:s');
+      $sesion = new Session();
+      $this->userLogin = $sesion->get('user');
+    }
+
+    // BEGIN: Initial functions
+
+    // Main query
+    public function listUserDynamics($param){
+        $response['success']=0;
+        $response['data']=[];
+
+        $filter = $param['filter'];
+
+        $this->openSessionDynamics();
+
+        try {
+            //code...
+            $response['success']=1;
+
+            $sql = "SELECT fun_id, fun_usuario, fun_identificacion, fun_nombre_completo, car_tag FROM ceg_funcionario JOIN ceg_rol ON fun_fk = fun_id AND rol_estado = 1
+            JOIN ceg_cargo ON car_fk = car_id AND car_estado = 1 WHERE (fun_usuario LIKE '%".$filter."%' OR fun_nombre_completo LIKE '%".$filter."%') AND fun_estado = 1 ORDER BY fun_usuario";
+            
+            $response['data'] = $this->dbD->consulta($sql);
+
+            $this->closeSessionDynamics();
+            
+            return $response;
+
+        } catch (\Throwable $th) {
+            //throw $th;
+            $response['success']=0;
+        }
+
+        $this->closeSessionDynamics();
+    }
+
+    public function listUserYeminus($param){
+      $response['success']=0;
+      $response['data']=[];
+
+      $filter = $param['filter'];
+
+      $this->openSessionYeminusAdmin();
+
+      try {
+          //code...
+          $response['success']=1;
+
+          $sql = "SELECT usu_identificacion, num_identificacion, usu_nombre_usuario FROM USUARIOS WHERE (LOWER(usu_identificacion) LIKE '%".$filter."%' OR LOWER(usu_nombre_usuario) LIKE '%".$filter."%') AND usu_habilitado = 'S' ORDER BY usu_identificacion";
+          
+          $response['data'] = $this->dbYA->consulta($sql);
+
+          $this->closeSessionYeminusAdmin();
+          
+          return $response;
+
+      } catch (\Throwable $th) {
+          //throw $th;
+          $response['success']=0;
+      }
+
+      $this->closeSessionYeminusAdmin();
+    }
+
+    /* Copy functions */
+
+    public function copyUserDynamics($param){
+      $response['success']=0;
+      $response['data']=[];
+
+      $copyFrom = $param['copyFrom'];
+      $copyTo = $param['copyTo'];
+
+      $this->openSessionDynamics();
+
+      try {
+          //code...
+          $response['success']=1;
+
+          /* Unactivate permission userTo */
+          $this->dbD->sentencia("UPDATE ceg_permiso SET per_estado = 0 WHERE fun_fk = ".$copyTo." AND per_estado = 1");
+
+          $copyFromData = $this->dbD->consulta("SELECT mod_fk FROM ceg_permiso WHERE per_estado = 1 AND fun_fk = ".$copyFrom);
+
+          for ($i=0; $i < $copyFromData['cantidad_registros']; $i++) {
+            $this->dbD->sentencia("INSERT INTO ceg_permiso(mod_fk, fun_fk,per_fecha,per_estado) VALUES(".$copyFromData[$i]['mod_fk'].",".$copyTo.",GETDATE(),1)");
+          }
+
+          //$sql = "SELECT usu_identificacion, num_identificacion FROM USUARIOS WHERE (LOWER(usu_identificacion) LIKE '%".$filter."%' OR LOWER(usu_nombre_usuario) LIKE '%".$filter."%') AND usu_habilitado = 'S' ORDER BY usu_identificacion";
+          
+          //$response['data'] = $this->dbYA->consulta($sql);
+
+          $this->closeSessionDynamics();
+          
+          return $response;
+
+      } catch (\Throwable $th) {
+          //throw $th;
+          $response['success']=0;
+      }
+
+      $this->closeSessionDynamics();
+    }
+
+    public function copyUserYeminus($param){
+      $response['success']=0;
+
+      $copyFrom = $param['copyFrom'];
+      $copyTo = $param['copyTo'];
+      $this->openSessionYeminus();
+      try {
+          //code...
+          $response['deleteInfoErrors'][] = $this->dbY->sentencia("DELETE FROM DOCUMENTOS_POR_USUARIO WHERE DU_USUARIO ='".$copyTo."'");
+          $response['deleteInfoErrors'][] = $this->dbY->sentencia("DELETE FROM USUARIOS_BODEGAS WHERE UB_USUARIO ='".$copyTo."'");
+          $response['sqlDoc'] = [];
+          $response['sqlCel'] = [];
+          $response['dataDocuments'] = $this->dbY->consulta("SELECT * FROM DOCUMENTOS_POR_USUARIO WHERE DU_USUARIO = '".$copyFrom."'");
+          $response['dataCellars'] = $this->dbY->consulta("SELECT * FROM USUARIOS_BODEGAS WHERE UB_USUARIO = '".$copyFrom."'");
+
+          //print_r($response['dataDocuments']);
+
+          for ($i=0; $i < $response['dataDocuments']['cantidad_registros']; $i++) {
+            # code...            
+            $response['sqlDoc'][]=("INSERT INTO DOCUMENTOS_POR_USUARIO(DU_USUARIO,DU_DESHACER_PAGO,DU_DOCUMENTO,DU_NO_ADICIONAR,DU_NO_ANULAR,DU_NO_ARCHIVOS_DIGATALES,DU_NO_CAMBIAR_CANT_PEND,DU_NO_CAMBIAR_CONSECUTIVO,DU_NO_CAMBIAR_FECHA,DU_NO_CANCELAR_CANT_PEND,DU_NO_COMPA_DOC_FAC_ELEC,DU_NO_CONTABILIZAR,DU_NO_DESCONTABILIZAR,DU_NO_DIVIDIR_CTA_TW,DU_NO_ELIMINAR,DU_NO_FLETE_DOCUMENTO,DU_NO_FLETE_PAQUETEO,DU_NO_GENERAR_ORD_TRAB,DU_NO_GESTION_ACTIVIDADES,DU_NO_GESTION_CORREOS,DU_NO_GESTION_ESTADOS,DU_NO_GESTION_TAREAS,DU_NO_LANZAR_ENCUESTAS,DU_NO_LISTAR,DU_NO_MARGEN_COMERCIAL,DU_NO_MODIFICAR,DU_NO_OTRAS_MONEDAS,DU_NO_OTROS_INGRESOS,DU_NO_PAGAR,DU_NO_PAGO_FACTURAS,DU_NO_PAGO_PROVISIONAL,DU_NO_PORC_DESCUENTO,DU_NO_PORC_IVA,DU_NO_PRECIO_CON_IVA,DU_NO_PRECIO_SIN_IVA,DU_NO_TRASLADAR_TW,DU_NO_VALOR_DESCUENTO) VALUES('".$copyTo."'".(isset($response['dataDocuments'][$i]['DU_DESHACER_PAGO']) ? ",'".$response['dataDocuments'][$i]['DU_DESHACER_PAGO']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_DOCUMENTO']) ? ",'".$response['dataDocuments'][$i]['DU_DOCUMENTO']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_ADICIONAR']) ? ",'".$response['dataDocuments'][$i]['DU_NO_ADICIONAR']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_ANULAR']) ? ",'".$response['dataDocuments'][$i]['DU_NO_ANULAR']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_ARCHIVOS_DIGATALES']) ? ",'".$response['dataDocuments'][$i]['DU_NO_ARCHIVOS_DIGATALES']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_CAMBIAR_CANT_PEND']) ? ",'".$response['dataDocuments'][$i]['DU_NO_CAMBIAR_CANT_PEND']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_CAMBIAR_CONSECUTIVO']) ? ",'".$response['dataDocuments'][$i]['DU_NO_CAMBIAR_CONSECUTIVO']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_CAMBIAR_FECHA']) ? ",'".$response['dataDocuments'][$i]['DU_NO_CAMBIAR_FECHA']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_CANCELAR_CANT_PEND']) ? ",'".$response['dataDocuments'][$i]['DU_NO_CANCELAR_CANT_PEND']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_COMPA_DOC_FAC_ELEC']) ? ",'".$response['dataDocuments'][$i]['DU_NO_COMPA_DOC_FAC_ELEC']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_CONTABILIZAR']) ? ",'".$response['dataDocuments'][$i]['DU_NO_CONTABILIZAR']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_DESCONTABILIZAR']) ? ",'".$response['dataDocuments'][$i]['DU_NO_DESCONTABILIZAR']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_DIVIDIR_CTA_TW']) ? ",'".$response['dataDocuments'][$i]['DU_NO_DIVIDIR_CTA_TW']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_ELIMINAR']) ? ",'".$response['dataDocuments'][$i]['DU_NO_ELIMINAR']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_FLETE_DOCUMENTO']) ? ",'".$response['dataDocuments'][$i]['DU_NO_FLETE_DOCUMENTO']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_FLETE_PAQUETEO']) ? ",'".$response['dataDocuments'][$i]['DU_NO_FLETE_PAQUETEO']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_GENERAR_ORD_TRAB']) ? ",'".$response['dataDocuments'][$i]['DU_NO_GENERAR_ORD_TRAB']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_GESTION_ACTIVIDADES']) ? ",'".$response['dataDocuments'][$i]['DU_NO_GESTION_ACTIVIDADES']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_GESTION_CORREOS']) ? ",'".$response['dataDocuments'][$i]['DU_NO_GESTION_CORREOS']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_GESTION_ESTADOS']) ? ",'".$response['dataDocuments'][$i]['DU_NO_GESTION_ESTADOS']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_GESTION_TAREAS']) ? ",'".$response['dataDocuments'][$i]['DU_NO_GESTION_TAREAS']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_LANZAR_ENCUESTAS']) ? ",'".$response['dataDocuments'][$i]['DU_NO_LANZAR_ENCUESTAS']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_LISTAR']) ? ",'".$response['dataDocuments'][$i]['DU_NO_LISTAR']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_MARGEN_COMERCIAL']) ? ",'".$response['dataDocuments'][$i]['DU_NO_MARGEN_COMERCIAL']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_MODIFICAR']) ? ",'".$response['dataDocuments'][$i]['DU_NO_MODIFICAR']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_OTRAS_MONEDAS']) ? ",'".$response['dataDocuments'][$i]['DU_NO_OTRAS_MONEDAS']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_OTROS_INGRESOS']) ? ",'".$response['dataDocuments'][$i]['DU_NO_OTROS_INGRESOS']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_PAGAR']) ? ",'".$response['dataDocuments'][$i]['DU_NO_PAGAR']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_PAGO_FACTURAS']) ? ",'".$response['dataDocuments'][$i]['DU_NO_PAGO_FACTURAS']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_PAGO_PROVISIONAL']) ? ",'".$response['dataDocuments'][$i]['DU_NO_PAGO_PROVISIONAL']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_PORC_DESCUENTO']) ? ",'".$response['dataDocuments'][$i]['DU_NO_PORC_DESCUENTO']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_PORC_IVA']) ? ",'".$response['dataDocuments'][$i]['DU_NO_PORC_IVA']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_PRECIO_CON_IVA']) ? ",'".$response['dataDocuments'][$i]['DU_NO_PRECIO_CON_IVA']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_PRECIO_SIN_IVA']) ? ",'".$response['dataDocuments'][$i]['DU_NO_PRECIO_SIN_IVA']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_TRASLADAR_TW']) ? ",'".$response['dataDocuments'][$i]['DU_NO_TRASLADAR_TW']."'" : ",null").
+            (isset($response['dataDocuments'][$i]['DU_NO_VALOR_DESCUENTO']) ? ",'".$response['dataDocuments'][$i]['DU_NO_VALOR_DESCUENTO']."'" : ",null").")");
+          }
+
+          for ($i=0; $i < $response['dataCellars']['cantidad_registros']; $i++) { 
+            # code...
+            $response['sqlCel'][]=("INSERT INTO USUARIOS_BODEGAS(UB_USUARIO,UB_BODEGA,UB_NO_ADICIONAR,UB_NO_MODIFICAR,UB_NO_ELIMINAR,UB_NO_LISTAR) VALUES('".$copyTo."'".
+            (isset($response['dataCellars'][$i]['UB_BODEGA']) ? ",'".$response['dataCellars'][$i]['UB_BODEGA']."'" : ",null").
+            (isset($response['dataCellars'][$i]['UB_NO_ADICIONAR']) ? ",'".$response['dataCellars'][$i]['UB_NO_ADICIONAR']."'" : ",null").
+            (isset($response['dataCellars'][$i]['UB_NO_MODIFICAR']) ? ",'".$response['dataCellars'][$i]['UB_NO_MODIFICAR']."'" : ",null").
+            (isset($response['dataCellars'][$i]['UB_NO_ELIMINAR']) ? ",'".$response['dataCellars'][$i]['UB_NO_ELIMINAR']."'" : ",null").
+            (isset($response['dataCellars'][$i]['UB_NO_LISTAR']) ? ",'".$response['dataCellars'][$i]['UB_NO_LISTAR']."'" : ",null").")");
+          }
+
+          //print_r($response['sqlDoc']);
+
+          for ($i=0; $i < count($response['sqlDoc']); $i++) { 
+            $this->dbY->sentencia($response['sqlDoc'][$i]);
+          }
+
+          for ($i=0; $i < count($response['sqlCel']); $i++) { 
+            $this->dbY->sentencia($response['sqlCel'][$i]);
+          }
+          $response['success']=1;
+      } catch (\Throwable $th) {
+          $this->closeSessionYeminus();
+          throw $th;
+          $response['success']=0;
+      }
+
+      $this->closeSessionYeminus();
+      return $response;
+    }
+      
+
+    /* Private functions for conection to DBs */
+    private function openSessionDynamics(){
+      $this->dbD = new Bd();
+      $this->dbD->conectar();
+    }
+
+    private function closeSessionDynamics(){
+      $this->dbD->desconectar();
+    }
+
+    private function openSessionYeminus(){
+      $this->dbY=new Bd(BDNAME_GEMINUS,BDSERVER_GEMINUS,BDUSER_GEMINUS,BDPASS_GEMINUS,BDTYPE_GEMINUS);
+      $this->dbY->conectar();
+    }
+
+    private function closeSessionYeminus(){
+      $this->dbY->desconectar();
+    }
+
+    private function openSessionYeminusAdmin(){
+      $this->dbYA=new Bd(BDNAME_GEMINUS_ADMIN,BDSERVER_GEMINUS_ADMIN,BDUSER_GEMINUS_ADMIN,BDPASS_GEMINUS_ADMIN,BDTYPE_GEMINUS_ADMIN);
+      $this->dbYA->conectar();
+    }
+
+    private function closeSessionYeminusAdmin(){
+      $this->dbYA->desconectar();
+    }
+}
+
+
